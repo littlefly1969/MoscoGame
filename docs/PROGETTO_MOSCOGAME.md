@@ -1,16 +1,16 @@
 # MoscoGame — progetto del gioco e architettura della piattaforma
 
-**Versione:** 0.1  
+**Versione:** 0.2  
 **Data:** 16 novembre 2026  
 **Stato:** BOZZA DA VALIDARE  
 **Repository:** [littlefly1969/MoscoGame](https://github.com/littlefly1969/MoscoGame)  
 **Ambito di questa consegna:** progettazione funzionale e tecnica. L'implementazione software inizierà dopo la validazione dell'utente.
 
-Le indicazioni marcate **Requisito** riprendono la richiesta. Le indicazioni marcate **Proposta** sono scelte iniziali modificabili. Le domande della sezione 20 raccolgono le decisioni ancora aperte. Numeri, punteggi e obiettivi prestazionali sono proposte da verificare, non risultati già misurati.
+Le indicazioni marcate **Requisito** riprendono la richiesta. **Confermato** identifica le scelte esplicitamente precisate dall'utente nelle note; **Proposta** identifica le scelte ancora modificabili. La sezione 20 separa decisioni confermate e punti aperti. I valori indicativi e gli obiettivi prestazionali restano da validare e misurare, salvo quelli confermati, come il passo di morphing di 1 secondo e la penalità di 1 punto per una pausa respinta. L'elaborazione delle note non costituisce approvazione complessiva né autorizzazione ad avviare il software.
 
 ## 1. Visione del prodotto
 
-**Requisito.** Creare una piattaforma multigioco di società, a squadre, utilizzabile in cloud e anche senza Internet, con giochi aggiungibili in modo modulare. Il primo gruppo comprende giochi di parole in stile Taboo, disegno in stile Pictionary, domande e morphing. Seguiranno mimo, riconoscimento di canzoni e altre attività.
+**Requisito.** Creare una piattaforma multigioco di società, a squadre, utilizzabile in cloud, con giochi aggiungibili in modo modulare. **Confermato:** il gioco senza Internet è, per questa fase, soltanto una predisposizione architetturale; la sua realizzazione è rinviata. Il primo gruppo comprende giochi di parole in stile Taboo, disegno in stile Pictionary, domande e morphing. Seguiranno mimo, riconoscimento di canzoni e altre attività.
 
 Il prodotto deve offrire una serata di gioco continua: ingresso rapido, squadre riconoscibili, alternanza dei turni, attività comuni con prenotazione, punti e penalità, carte adatte a tema e difficoltà, schermate diverse per chi conduce, chi gioca e chi guarda.
 
@@ -23,9 +23,9 @@ La prima versione usa una classifica semplice. Il motore dovrà poter ospitare i
 - Un amministratore crea la partita e sceglie giochi, temi, difficoltà e regole.
 - I partecipanti entrano con QR o codice, scelgono una squadra e ricevono una vista coerente con il proprio ruolo.
 - Una TV mostra attività pubblica, timer, prenotazione e classifica.
-- I telefoni fungono da schermo personale, pulsante e, quando previsto, superficie di disegno.
+- Ogni squadra designa un telefono ufficiale per le prenotazioni. Gli altri telefoni mostrano i contenuti consentiti al partecipante; il gioco definisce le eventuali azioni specifiche dell'esecutore, come il disegno.
 - Le carte provengono da un catalogo oppure dall'AI, con controlli e riserva già pronta.
-- La partita funziona in cloud oppure su un server locale; le modalità condividono le regole.
+- La partita iniziale è online. Dominio e contratti mantengono la possibilità di un successivo server locale per il gioco senza Internet.
 - I futuri pulsanti ESP32 si collegano allo stesso sistema di prenotazione dei telefoni.
 
 ## 2. Requisiti e confini iniziali
@@ -41,188 +41,333 @@ La prima versione usa una classifica semplice. Il motore dovrà poter ospitare i
 | R07 | Catalogo di carte e generazione AI per ciascun gioco | Catalogo prima; AI dopo verifica integrazione |
 | R08 | Uso personale del piano ChatGPT attraverso un flusso ufficiale idoneo | Verifica preliminare e connettore locale |
 | R09 | Collegamento futuro a modelli tramite API | Contratti dalla fondazione; adattatori progressivi |
-| R10 | Gioco senza Internet su più dispositivi | Prova tecnica iniziale; rilascio locale dedicato |
+| R10 | Predisposizione del futuro gioco senza Internet su più dispositivi | Confini architetturali ora; implementazione e collaudo offline futuri |
 | R11 | Visualizzazione TV Android TV/Fire TV | Vista web prima; compatibilità hardware da provare |
 | R12 | Pulsanti ESP32 a batteria, LED e buzzer | Contratto predisposto; hardware in fase successiva |
 | R13 | Qualità industriale: sicurezza, test, ripristino, osservabilità | Progressiva, con criteri di accettazione |
 | R14 | Difficoltà, argomenti e AI dinamica | Configurazione iniziale; adattamento sperimentale |
+| R15 | Matrice di visibilità configurabile e versionata per ciascun gioco | Fondazione e moduli |
+| R16 | Esito concordato tra avversaria proponente e squadra interessata | Prima partita completa |
+| R17 | Telefono ufficiale, tempi per gioco e penalità limitata alla successiva riapertura | Prima partita completa |
+| R18 | Pausa immediata con maggioranza stretta; annullamento unanime | Prima partita completa |
 
 **Terminologia.** Si intende **PWA**, Progressive Web App: applicazione web installabile sui browser compatibili, con risorse disponibili localmente. La PWA è la parte client; il coordinamento di una partita richiede comunque un'autorità di gioco.
 
-**Fuori dal primo rilascio:** tabellone articolato, pagamenti, marketplace di moduli, streaming audio/video, matchmaking pubblico, app native complete, generazione di immagini/video durante il conto alla rovescia, produzione definitiva dei dispositivi.
+**Fuori dal primo rilascio:** funzionamento multiplayer senza Internet, prenotazione da tutti i telefoni, tabellone articolato, pagamenti, marketplace di moduli, streaming audio/video, matchmaking pubblico, app native complete, generazione di immagini/video durante il conto alla rovescia e produzione definitiva dei dispositivi. Il connettore AI personale locale è una sperimentazione distinta dalla futura partita offline.
 
-## 3. Ruoli, account e visibilità
+## 3. Attori, account, dispositivi e visibilità
 
-Identità permanente, appartenenza alla squadra e ruolo nell'attività sono tre concetti distinti. Un partecipante può essere capitano nella partita e disegnatore soltanto nella prova corrente.
+### 3.1 Attori della prova
 
-| Ruolo | Identità proposta | Capacità |
-| --- | --- | --- |
-| Amministratore della piattaforma | Account permanente | Configurazione installazione, contenuti, connettori e utenti |
-| Organizzatore della partita | Account amministratore/organizzatore | Crea stanza, assegna squadre, configura e conduce |
-| Arbitro | Incarico nella partita | Conferma esiti, contesta carte e applica rettifiche motivate |
-| Squadra | Profilo con nome, colore, simbolo e membri | Unità che gioca, si prenota e riceve punti |
-| Capitano / console di squadra | Accesso limitato alla squadra nella stanza | Prenotazione o risposta ufficiale, se questa modalità è selezionata |
-| Componente | Account personale oppure identità ospite | Vede i dati consentiti e svolge il ruolo assegnato |
-| Descrittore / disegnatore / mimo | Incarico temporaneo | Riceve il segreto necessario alla prova |
-| Display TV | Dispositivo associato alla stanza | Riceve soltanto proiezioni pubbliche |
-| Pulsante ESP32 | Identità tecnica revocabile | Prenota per la squadra assegnata e riceve feedback |
+**Confermato.** Ogni gioco distingue la squadra che svolge la prova, i suoi componenti e una o più squadre avversarie con i rispettivi componenti. Nelle prove pubbliche tutte competono; restano distinguibili la squadra di turno e quella che ha prenotato o vinto.
 
-**Proposta sull'account squadra.** Prevedere un profilo persistente e una console utilizzabile con un solo telefono per squadra. L'accesso avviene con un invito circoscritto alla stanza; non richiede di condividere una password personale. Gli account dei singoli membri restano opzionali nella prova personale. Un futuro account squadra con credenziali proprie è una decisione separata.
+L'**esecutore** è il partecipante incaricato della prova, per esempio descrittore, disegnatore o mimo. È previsto salvo le prove collettive che non richiedono un esecutore individuale. Il contratto ammette un destinatario specifico per prove uno contro uno; queste modalità sono preferibilmente escluse dalla prima selezione per privilegiare il gioco di società.
 
-### Matrice minima dei dati durante una prova
+Identità permanente, squadra, ruolo nella prova e dispositivo sono distinti. Un telefono ufficiale non riceve automaticamente tutti i segreti: vede ciò che il ruolo del suo utilizzatore può conoscere.
 
-| Informazione | TV / spettatori | Giocatori che indovinano | Esecutore della prova | Arbitro designato |
-| --- | --- | --- | --- | --- |
-| Squadra di turno, timer, classifica | Sì | Sì | Sì | Sì |
-| Domanda pubblica / immagine pubblica | Sì | Sì | Sì | Sì |
-| Parola segreta Taboo / disegno | No | No, inclusi i compagni | Sì | Solo se necessario |
-| Parole vietate | No | No | Sì | Sì, se incaricato del controllo |
-| Soluzione di quiz o morphing | Dopo la chiusura | Dopo la chiusura | Nessun privilegio automatico | Sì, se deve giudicare |
-| Risposta ancora da confermare | Solo quanto previsto dalle regole | Secondo ruolo | Secondo ruolo | Sì |
-| Credenziali AI e dati amministrativi | No | No | No | Solo configurazione autorizzata, senza esposizione dei segreti |
+| Attore o dispositivo | Capacità |
+| --- | --- |
+| Amministratore della piattaforma | Configura installazione, contenuti, connettori e utenti |
+| Organizzatore della partita | Crea stanza, assegna squadre e ruoli, imposta giochi e profili |
+| Squadra di turno / che svolge la prova | Partecipa come unità, tramite i propri componenti |
+| Componenti della squadra | Vedono i contenuti previsti dal ruolo e dal gioco |
+| Esecutore della prova | Svolge l'azione assegnata e riceve l'eventuale contenuto riservato |
+| Destinatario individuale, se previsto | Riceve la prova uno contro uno; estensione non prioritaria |
+| Squadre avversarie e componenti | Vedono i contenuti previsti, osservano e possono proporre l'esito |
+| Squadra interessata dall'esito | Accetta o contesta la proposta: squadra esecutrice oppure vincitrice nelle prove pubbliche |
+| Telefono ufficiale di squadra | Unico telefono autorizzato a prenotare per quella squadra |
+| Altri telefoni | Consultazione secondo matrice; prenotazione disabilitata |
+| Display TV | Riceve la vista pubblica della partita |
+| Pulsante ESP32, futuro | Dispositivo associato alla squadra con capacità di prenotazione da collaudare |
 
-Il backend produce viste dedicate per destinatario. Non si invia mai una carta completa a tutti affidando a React il compito di nasconderne la soluzione. La stessa separazione vale per URL di immagini, miniature, nomi file, log e cache.
+**Valutazione confermata:** il gioco ordinario usa un accordo tra squadre, descritto nella sezione 5. Non richiede un arbitro individuale dedicato. I poteri amministrativi non sostituiscono il consenso richiesto dalle regole.
 
-**Organizzatore che gioca.** Proposta predefinita: organizzatore/arbitro non concorrente. Se partecipa, la sua vista di gioco nasconde le soluzioni e la valutazione passa a un altro arbitro oppure a regole automatiche adeguate. Un amministratore con accesso al database resta un soggetto fidato: non si promette protezione contro il gestore dell'infrastruttura.
+**Proposta sugli account:** profilo persistente di squadra, invito circoscritto alla stanza, membri con account oppure identità ospite. Gli account personali restano facoltativi nella prova personale. Un eventuale account squadra con credenziali proprie è ancora da decidere.
+
+### 3.2 Telefono ufficiale e autorizzazioni
+
+**Confermato:** un solo telefono ufficiale per squadra effettua le prenotazioni. La modalità in cui prenotano tutti i membri è futura e non è l'impostazione iniziale.
+
+**Proposta operativa:** usare la stessa console per inviare proposte, accettazioni, voti di pausa/annullamento e comandi Riprendi. Le visualizzazioni personali restano disponibili sugli altri telefoni. Le azioni specifiche della prova, come tracciare un disegno, hanno un permesso distinto assegnato all'esecutore.
+
+La sostituzione del telefono ufficiale richiede un trasferimento esplicito e registrato. Il precedente dispositivo perde il permesso prima che il nuovo possa prenotare; due connessioni o schede dello stesso browser non diventano due console ufficiali.
+
+### 3.3 Una matrice configurabile per ciascun gioco
+
+**Confermato:** ogni modulo dispone della propria matrice di visibilità, facilmente modificabile a seguito delle prove. Non basta una matrice globale uguale per tutti.
+
+Le righe identificano contenuti; le colonne identificano relazioni e ruoli: esecutore, compagni, squadra di turno, squadra prenotata, avversarie e loro componenti, TV. Le condizioni possono dipendere dalla fase: preparazione, esecuzione, risposta, verifica o attività chiusa.
+
+**Proposta tecnica:** un profilo di visibilità dichiarativo e versionato, modificabile dalla configurazione del gioco senza riscrivere le regole del motore. Ogni partita usa una versione precisa; le modifiche sperimentali entrano in vigore all'avvio di un'attività successiva, con anteprima dei destinatari. Un cambiamento non può ritirare informazioni già viste.
+
+Le matrici della sezione 6 sono i profili iniziali da provare. In particolare, Taboo ammette che **tutti i componenti di tutte le squadre avversarie vedano le parole vietate**. Mostrare anche la parola obiettivo alle avversarie è una scelta separata, non implicita.
+
+Il backend costruisce la vista autorizzata per destinatario e fase. URL, nomi file, miniature, log e cache seguono le stesse regole. Il profilo di visibilità non può concedere accesso a credenziali AI o dati amministrativi.
+
+### 3.4 Organizzatore che gioca
+
+L'organizzatore può essere un partecipante: la sua vista di gioco segue il medesimo profilo e la valutazione avviene tramite accordo tra le squadre. Non è necessario riservargli tutte le soluzioni. Chi ha accesso al database o prepara i mazzi resta un soggetto fidato e può conoscere contenuti prima della partita.
 
 ## 4. Struttura della partita e flusso generale
 
 ### 4.1 Oggetti di gioco
 
-- **Partita:** stanza con squadre, configurazione, classifica, sequenza dei turni e stato salvato.
-- **Turno:** opportunità assegnata alla squadra corrente.
-- **Attività:** una prova estratta da un modulo; può coinvolgere la sola squadra corrente oppure tutte le squadre.
-- **Carta:** contenuto versionato selezionato per l'attività.
+- **Partita:** stanza con squadre, profili, classifica e stato persistente.
+- **Turno di squadra:** opportunità assegnata dalla rotazione generale.
+- **Attività/prova:** evento di un modulo, riservato alla squadra corrente oppure pubblico.
+- **Carta:** contenuto versionato scelto per l'attività.
+- **Finestra di prenotazione:** singola apertura alle squadre ammesse, numerata all'interno dell'attività.
 - **Tentativo:** prenotazione e risposta di una squadra.
-- **Esito:** risultato confermato da regole o arbitro.
-- **Movimento punti:** variazione motivata e registrata nella classifica.
+- **Proposta di esito:** dichiarazione di un'avversaria, con risultato e squadra interessata.
+- **Accordo:** accettazione della proposta corrente da parte della squadra interessata.
+- **Consultazione:** votazione di pausa, annullamento o raccolta dei Riprendi, con regola propria.
+- **Movimento punti:** variazione motivata, confermata una sola volta.
 
-### 4.2 Regola fondamentale proposta
+**Distinzione confermata:** saltare la prossima finestra di prenotazione nella stessa attività non significa saltare il successivo turno di squadra.
 
-Le squadre ruotano in un ordine fissato all'avvio. Per ogni turno viene selezionata un'attività tra i giochi abilitati:
+### 4.2 Flusso della partita
 
-1. Il server sceglie modulo, modalità e carta ammissibile.
-2. I ruoli ricevono i rispettivi contenuti durante la preparazione.
-3. Dopo il conto alla rovescia inizia la prova.
-4. In una prova di squadra risponde soltanto la squadra corrente.
-5. In una prova comune possono prenotarsi tutte le squadre ammesse.
-6. Si determina l'esito, si registrano i punti e si mostra il risultato.
-7. Il turno passa alla squadra successiva, anche se ha vinto una squadra diversa.
+La rotazione e la selezione dei giochi restano proposte da validare. Una volta scelta la prova:
 
-**Proposta:** il vincitore di una prova comune non ottiene automaticamente il turno successivo. La rotazione resta prevedibile. Un futuro modificatore potrà introdurre questo effetto.
+1. Il server prepara modulo, carta, ruoli, profilo di visibilità e tempi.
+2. Ogni dispositivo riceve i contenuti consentiti; si avvia il conto alla rovescia.
+3. In una prova di squadra agiscono i partecipanti designati della squadra corrente.
+4. In una prova pubblica prenotano i telefoni ufficiali delle squadre ammesse.
+5. Il tentativo conduce a una proposta di esito da un'avversaria e all'accettazione della squadra interessata.
+6. Se l'esito è contestato, viene riformulato finché le due squadre concordano; i punti del tentativo restano da confermare.
+7. Se il tentativo non conclude una prova pubblica progressiva, si raccolgono i Riprendi di tutte le squadre.
+8. Alla chiusura si registrano i movimenti definitivi e si passa al successivo turno di squadra.
 
-### 4.3 Stati dell'attività
+**Proposta:** vincere una prova pubblica non cambia automaticamente la rotazione. Annullamento e pausa seguono i protocolli distinti della sezione 5.
+
+### 4.3 Stati della prova pubblica progressiva
 
 ```mermaid
 stateDiagram-v2
     [*] --> Preparazione
-    Preparazione --> ContoAllaRovescia: contenuto pronto
-    ContoAllaRovescia --> InCorso: avvio
-    InCorso --> RispostaPrenotata: prenotazione valida
-    RispostaPrenotata --> InCorso: errore e squadre ammesse
-    RispostaPrenotata --> Valutazione: risposta ricevuta
-    Valutazione --> InCorso: errore e tempo residuo
-    InCorso --> Esito: tempo scaduto
-    RispostaPrenotata --> Esito: timeout conclusivo
-    Valutazione --> Esito: risposta corretta o fine prova
-    Esito --> Chiusura
-    Chiusura --> [*]
+    Preparazione --> InCorso: avvio
+    InCorso --> Risposta: prenotazione assegnata
+    Risposta --> Accordo: risposta o scadenza risposta
+    Accordo --> Accordo: contestazione e nuova proposta
+    Accordo --> AttesaRiprendi: errore concordato
+    AttesaRiprendi --> InCorso: riprendi di tutte le squadre
+    Accordo --> Chiusa: successo concordato
+    InCorso --> Chiusa: tempo totale esaurito
+    Chiusa --> [*]
 ```
 
-Le prove senza prenotazione passano da InCorso alla valutazione/esito secondo il modulo. Pausa e annullamento sono comandi controllati del motore, consentiti negli stati previsti e registrati; non sono lasciati alla sola interfaccia.
+Alla prenotazione si congela il tempo totale della prova e la progressione dei media; parte il tempo di risposta. Nel morphing questa regola è esplicitamente confermata. Accordo, pausa ed eventuale annullamento sono stati persistenti, non semplici finestre grafiche.
 
-### 4.4 Selezione attività, durata e fine partita
+Il diagramma mostra il percorso normale. Un annullamento approvato da tutte le squadre conduce a uno stato terminale dedicato. Una richiesta di pausa sospende lo stato corrente e conserva i tempi, senza introdurre una nuova finestra di prenotazione.
+
+### 4.4 Selezione attività e fine partita
 
 **Proposte iniziali:**
 
-- Scelta ponderata fra i moduli abilitati, con regola che limita ripetizioni consecutive.
-- Bilanciamento del numero di attività di squadra/comuni e della difficoltà tra le squadre.
-- Sequenza e seed registrati per audit; contenuti e ordine futuro restano sul server.
-- Carte non ripetute nella stessa partita; mazzo esaurito segnalato esplicitamente.
-- Fine predefinita dopo un numero configurabile di giri completi, così ogni squadra ha lo stesso numero di turni.
-- Varianti future: tempo totale o punteggio obiettivo; al termine si completa il giro se previsto.
-- Parità inizialmente classificata ex aequo; spareggio opzionale con sole attività comuni.
+- Selezione ponderata dei moduli, con limiti alle ripetizioni consecutive.
+- Bilanciamento del numero e difficoltà delle prove di squadra/pubbliche tra le squadre.
+- Sequenza e seed registrati; carte e ordine futuro restano sul server.
+- Carte non ripetute nella partita; esaurimento segnalato alla regia.
+- Fine dopo un numero configurabile di giri completi; varianti a tempo o punteggio successive.
+- Classifica ex aequo in caso di parità, oppure spareggio pubblico opzionale.
 
-## 5. Punteggi, prenotazione e penalità
+Il numero di squadre di riferimento è almeno due. La fine dell'attività non viene mai provocata dall'esclusione cumulativa di tutte le squadre. Le attività possono comunque chiudersi per successo, scadenza del tempo totale o annullamento unanime.
 
-### 5.1 Profilo iniziale da bilanciare con prove reali
+## 5. Esiti concordati, prenotazioni, punti e controllo dei tempi
 
-| Evento | Proposta |
+### 5.1 Tre regole di consenso distinte
+
+| Operazione | Chi la propone | Consenso richiesto | Stato |
+| --- | --- | --- | --- |
+| Conferma dell'esito | Una squadra avversaria | Squadra proponente e squadra interessata | Confermato |
+| Annullamento dell'attività | Una squadra avversaria alla squadra interessata | Tutte le squadre, inclusa quella che ha giocato | Confermato |
+| Pausa richiesta da una squadra | Qualsiasi squadra | Maggioranza stretta delle squadre | Confermato |
+| Ripresa di una prova pubblica progressiva | Ogni squadra invia Riprendi | Riprendi di tutte le squadre | Confermato |
+
+Le soglie non sono intercambiabili. Una squadra temporaneamente non ammessa a prenotare continua a partecipare ai consensi richiesti.
+
+### 5.2 Proposta e accettazione dell'esito
+
+Una delle avversarie propone il superamento della prova o l'esito del tentativo. La squadra che ha eseguito la prova, oppure quella che ha risposto/vinto nella prova pubblica, accetta o contesta. Per confermare bastano queste due squadre; le altre non hanno un voto obbligatorio sull'esito ordinario.
+
+In caso di contestazione non si assegnano definitivamente i punti proposti. Le due squadre discutono e viene presentata una nuova versione della proposta fino all'accordo. Una modifica invalida l'accettazione della versione precedente. Il server verifica che una squadra non proponga e accetti da sola il proprio esito.
+
+**Proposta tecnica:** una proposta corrente per tentativo, con proponente, squadra interessata, versione, risultato, motivazione e accettazione. Il protocollo non attribuisce a una persona il potere di arbitrare unilateralmente.
+
+Per giudicare una risposta pubblica senza compromettere i tentativi successivi, non si rivela la soluzione canonica a tutte le squadre prima della chiusura. Il modulo può fornire un riscontro sulla risposta già dichiarata; il confronto con le varianti accettate resta sul server. Un suggerimento automatico o AI non sostituisce l'accordo.
+
+Se la valutazione necessita di rivelare la soluzione, il modulo deve collocare la rivelazione in una fase che impedisca ulteriori tentativi su quel segreto. Come gestire un disaccordo protratto è una decisione ancora aperta; non si presume un arbitro di riserva.
+
+### 5.3 Prenotazione e tempo di risposta
+
+**Confermato:**
+
+- Prenota soltanto il telefono ufficiale associato alla squadra. Gli altri telefoni non possono inviare una prenotazione valida, neppure chiamando direttamente l'API.
+- L'opzione con tutti i componenti abilitati è futura.
+- Il sistema deve cercare la massima precisione possibile nell'individuare chi ha premuto per primo.
+- Il tempo di risposta è configurabile per **tipo di gioco**, separatamente dal tempo totale della prova.
+- Alla prenotazione si fermano timer totale e progressione dell'attività; parte soltanto il tempo di risposta.
+- La durata totale non deve essere consumata dalla finestra di risposta nel morphing.
+
+Il server apre una finestra identificata e assegna la prima prenotazione valida in modo atomico. Registra l'ordine osservabile con il massimo dettaglio consentito dall'infrastruttura. Il feedback di vittoria su telefono e TV segue l'assegnazione del server.
+
+**Limite da verificare:** l'ordine fisico delle pressioni può differire dall'ordine di ricezione per la latenza. La misura iniziale usa l'ordine autorevole di ricezione; i timestamp client sono diagnostici e non decidono da soli il vincitore. Gli ESP32 saranno valutati per migliorare precisione e uniformità, senza presumere un miglioramento già misurato.
+
+La risposta ricevuta o la scadenza della sua finestra porta alla valutazione. L'ammontare dell'eventuale penalità per errore o timeout resta parte del profilo del gioco; il sistema non trasforma automaticamente una contestazione in una nuova penalità.
+
+### 5.4 Esclusione temporanea e Riprendi
+
+**Confermato:** è possibile configurare che una squadra che sbaglia salti **soltanto la successiva riapertura delle prenotazioni nella stessa attività**. Dopo quella finestra torna ammessa. Non è un'esclusione per tutta l'attività né una penalità sul prossimo turno della partita.
+
+Le finestre sono numerate. La squadra che sbaglia nella finestra k può essere esclusa dalla k+1; dalla k+2 torna disponibile se l'attività prosegue. Una sospensione o un rifiuto di pausa non incrementano il numero della finestra.
+
+**Confermato:** non si possono escludere contemporaneamente tutte le squadre. Il motore e i profili devono preservare almeno una squadra ammessa a ogni nuova apertura. Nessuna chiusura per “tutte escluse”: se non arriva una risposta corretta, il limite è il tempo totale.
+
+Per una prova pubblica progressiva, prima di una nuova apertura **tutte le squadre devono inviare Riprendi**, compresa quella temporaneamente non ammessa a prenotare. I consensi valgono soltanto per la specifica ripresa e vengono azzerati alla successiva richiesta. Non si applica qui la maggioranza della pausa.
+
+### 5.5 Pausa: arresto immediato e maggioranza stretta
+
+Una squadra preme il pulsante di pausa. Il server congela immediatamente il timer interessato al valore corrente e arresta la progressione dell'attività. Non aspetta l'esito della votazione. Se è in corso una finestra di risposta, **proposta operativa**: congelare anche quel timer, così il fermo non produce un errore per timeout.
+
+Ogni squadra esprime un voto. Serve più della metà del totale delle squadre:
+
+| Squadre totali | Consensi necessari |
 | --- | --- |
-| Carta Taboo indovinata entro il tempo | +1 alla squadra corrente per carta |
-| Uso confermato di parola vietata | -1 e cambio carta |
-| Passaggio carta Taboo | 0; limite configurabile |
-| Pictionary riuscito | +3 alla squadra corrente |
-| Pictionary scaduto | 0 |
-| Prova comune: corretta della squadra di turno | +3 |
-| Prova comune: corretta di altra squadra | +2 |
-| Prova comune: risposta errata / timeout di risposta | -1 e blocco squadra per quella attività |
-| Nessuna risposta entro la fine | 0 |
-| Attività annullata per contenuto errato | Nessun effetto netto sui punti di quella attività |
+| 2 | 2 |
+| 3 | 2 |
+| 4 | 3 |
+| 5 | 3 |
+| 6 | 4 |
 
-**Proposta:** punteggi negativi consentiti. Penalità, bonus e limiti sono parametri del profilo di regole salvato nella partita. I valori dei diversi giochi dovranno essere bilanciati per tempo, difficoltà e quantità di carte: +1 per carta e +3 per una prova singola sono valori di partenza.
+**Proposta operativa:** la squadra proponente conta come un consenso; il denominatore comprende tutte le squadre della partita, non soltanto i dispositivi connessi. Si registra un solo voto per squadra.
 
-Il motore registra un elenco di movimenti punti con motivo, squadra, attività e autore. Una rettifica aggiunge un movimento compensativo collegato all'originale; non cancella la storia. Una stessa chiusura, ripetuta per errore di rete, non attribuisce punti due volte.
+- Se si raggiunge la maggioranza stretta, la pausa è approvata e il timer rimane fermo.
+- Se la proposta viene respinta, la squadra proponente perde **1 punto**.
+- Dopo il rifiuto, il timer riparte **dal valore congelato**, senza sottrarre il tempo della votazione.
+- Il rifiuto conclude quella richiesta e produce al massimo un movimento di penalità, anche se il messaggio viene ripetuto.
 
-### 5.2 Prenotazione per le prove comuni
+Resta da definire quando dichiarare respinta una richiesta con voti mancanti e come autorizzare la ripresa di una pausa approvata nei giochi non progressivi. Nelle prove pubbliche progressive resta valido il Riprendi di tutte le squadre.
 
-- Si prenota la **squadra**. Più telefoni della stessa squadra generano al massimo una prenotazione valida.
-- Impostazione proposta: tutti i membri possono premere; il capitano o un portavoce dà la risposta. È disponibile la variante con sola console di squadra.
-- Il server apre una finestra identificata e accetta soltanto richieste dell'attività e della finestra correnti.
-- Vince la prima richiesta valida elaborata dall'autorità di gioco; la selezione è atomica.
-- La conferma del server accende il segnale di prenotazione sui telefoni, sulla TV e sui futuri pulsanti.
-- La squadra ha una finestra di risposta proposta di 8 secondi, comunque entro la scadenza generale.
-- Risposta sbagliata o tempo di risposta esaurito: -1, esclusione della squadra da questa attività e riapertura alle altre, se resta tempo.
-- Risposta corretta: chiusura della prova e attribuzione del premio.
-- Se tutte le squadre sono escluse o scade il tempo generale, la prova termina.
-- L'arbitro può sospendere prima della scadenza mentre valuta una risposta; la pausa ferma i timer dell'attività e viene registrata. Un invio effettuato dopo la scadenza effettiva non diventa valido grazie a una pausa successiva.
+### 5.6 Annullamento dell'attività
 
-**Equità.** L'ordine di arrivo al server non coincide sempre con l'ordine fisico dei tocchi. Non si usano gli orologi dei telefoni per decidere il vincitore. Per il salotto competitivo si preferisce l'autorità locale con tutti i dispositivi sulla stessa LAN; si misurano anche differenze tra pulsanti e telefoni. Un'eventuale modalità remota competitiva richiederà regole esplicite per la latenza.
+**Confermato:** una squadra avversaria propone l'annullamento e devono accettare **tutte le squadre**, inclusa quella che ha svolto o vinto la prova. La maggioranza stretta non basta.
 
-### 5.3 Esempio concreto
+La richiesta identifica attività e motivo. Senza tutte le accettazioni non esiste un annullamento confermato; la richiesta è distinta dalla pausa e non ne eredita automaticamente né l'arresto dei timer né la penalità di 1 punto.
 
-La squadra A è di turno e compare un quiz comune. B si prenota, sbaglia e perde 1 punto; B resta esclusa da quel quiz. A si prenota e risponde correttamente: guadagna 3 punti. L'attività finisce e il turno passa a B. Se avesse risposto correttamente C, C avrebbe guadagnato 2 punti e il turno sarebbe comunque passato a B.
+Un annullamento confermato chiude l'attività e compensa gli effetti di punteggio legati al suo risultato. Le carte contestate possono essere segnalate e messe in quarantena. La sorte di eventuali penalità procedurali già maturate, come una pausa respinta, va fissata nel profilo prima dello sviluppo.
 
-## 6. Moduli iniziali
+### 5.7 Profilo punti da bilanciare
 
-| Modulo | Modalità iniziale | Contenuto necessario | Interazione e riservatezza | Durata proposta |
-| --- | --- | --- | --- | --- |
-| Parole vietate, stile Taboo | Di squadra | Parola obiettivo, 5 parole vietate, difficoltà e tema | Descrittore vede la carta; compagni indovinano; arbitro verifica | 60 s, più carte |
-| Disegno, stile Pictionary | Di squadra | Soggetto, categorie e criteri di accettazione | Disegnatore vede il soggetto; disegno pubblico; parola nascosta | 90 s, una carta |
-| Domande | Comune | Domanda, soluzione, varianti accettate, spiegazione e fonti quando necessarie | Domanda pubblica, prenotazione, giudizio | 30 s |
-| Morphing | Comune, da confermare | Media, sequenza della trasformazione, soluzione e licenza | Media sulla TV e prenotazione; soluzione nascosta | 30 s |
+| Evento | Valore o effetto | Stato |
+| --- | --- | --- |
+| Carta Taboo indovinata | +1 alla squadra corrente per carta | Proposta |
+| Uso confermato di parola vietata | -1 e cambio carta | Proposta |
+| Passaggio carta Taboo | 0; limite configurabile | Proposta |
+| Pictionary riuscito | +3 alla squadra corrente | Proposta |
+| Pictionary scaduto | 0 | Proposta |
+| Prova pubblica: corretta della squadra di turno | +3 | Proposta |
+| Prova pubblica: corretta di altra squadra | +2 | Proposta |
+| Risposta pubblica errata / timeout | -1; possibile salto della sola prossima finestra | Importo proposto; ambito del salto confermato |
+| Pausa respinta | -1 alla squadra proponente | Confermato |
+| Tempo totale esaurito senza soluzione | 0 ulteriori punti | Proposta |
+| Annullamento unanime | Compensazione dei punti di risultato dell'attività | Confermato; penalità procedurali da definire |
+
+Punteggi negativi consentiti è ancora una proposta. I valori dei diversi giochi vanno bilanciati per difficoltà, durata e numero di carte.
+
+Il motore conserva un registro dei movimenti con motivo, squadra, attività, tentativo/procedura e autore. Le rettifiche aggiungono compensazioni collegate agli originali. Nessun accordo, rifiuto o annullamento ripetuto in rete può produrre due volte lo stesso effetto.
+
+### 5.8 Esempio con due squadre
+
+A è di turno. B prenota e sbaglia; A propone l'esito e B lo accetta. Se la penalità temporanea è attiva, B salta la prossima finestra. Dopo i Riprendi di entrambe, A può prenotare. Se anche A sbaglia, B propone l'esito e A lo accetta; alla riapertura seguente A salta e B è nuovamente ammessa. Se nessuna risolve, il limite resta il tempo totale della prova.
+
+Con il profilo punti proposto, una soluzione di A vale +3, una soluzione di B +2. Dopo la chiusura il turno passa a B, secondo la rotazione generale ancora da validare.
+
+## 6. Moduli iniziali e matrici di visibilità
+
+Le matrici seguenti descrivono profili iniziali configurabili. “Dopo chiusura” significa soltanto quando il segreto non verrà riutilizzato per ulteriori tentativi. L'esecutore è un ruolo distinto; nelle prove pubbliche collettive può essere assente.
+
+| Modulo | Modalità iniziale | Contenuto | Tempo totale indicativo |
+| --- | --- | --- | --- |
+| Parole vietate, stile Taboo | Di squadra | Parola obiettivo, 5 vietate, tema e difficoltà | 60 s, più carte |
+| Disegno, stile Pictionary | Di squadra | Soggetto e criteri di accettazione | 90 s, una carta |
+| Domande | Pubblica | Domanda, soluzione, varianti, spiegazione e fonti necessarie | 30 s |
+| Morphing | Pubblica | Volto iniziale standard, sequenza di immagini, volto finale e soluzione | Da tarare sul numero di immagini |
+
+**Confermato:** tempo di risposta configurabile per tipo di gioco; per il morphing il passo è **1 secondo per immagine**. I tempi totali della tabella sono proposte.
 
 ### 6.1 Parole vietate
 
-Possibili difficoltà: numero/forza delle parole vietate, astrattezza del soggetto e tempo. Un arbitro può contestare una parola vietata, con conferma esplicita; un riconoscitore vocale non è necessario al primo rilascio.
+L'esecutore descrive; i compagni indovinano. Tutti i componenti delle squadre avversarie possono vedere le parole vietate per controllare la prova. L'esito o la violazione vengono proposti da un'avversaria e accettati dalla squadra che gioca.
 
-La carta successiva viene inviata al descrittore soltanto quando la precedente viene chiusa. Il server controlla tempo e punteggio dell'intera attività.
+| Contenuto | Esecutore | Compagni che indovinano | Tutte le avversarie e i loro componenti | TV |
+| --- | --- | --- | --- | --- |
+| Parola obiettivo | Sì | Dopo chiusura carta | Dopo chiusura carta, profilo da provare | Dopo chiusura carta |
+| Parole vietate | Sì | Dopo chiusura carta | Sì durante la prova | Dopo chiusura carta |
+| Timer e punteggio | Sì | Sì | Sì | Sì |
+| Proposta/esito e stato dell'accordo | Sì | Sì | Sì | Sì, senza segreti anticipati |
+
+La visibilità delle vietate a tutte le avversarie è il caso richiesto da predisporre. La visibilità dell'obiettivo alle avversarie resta configurabile e separata. L'accordo non implica che tutti i membri abbiano il permesso di inviare comandi ufficiali.
+
+Difficoltà modulabile per numero/forza delle vietate, astrattezza e tempo. La carta successiva arriva all'esecutore quando la precedente è chiusa. La gestione del tempo mentre si concorda ogni carta va specificata nel profilo del modulo. Il riconoscimento vocale non è necessario al primo rilascio.
 
 ### 6.2 Disegno
 
-**Proposta iniziale:** disegno su telefono/tablet, riprodotto sulla TV; variante con lavagna fisica e timer digitale. Il tratto viene visualizzato subito sul dispositivo del disegnatore e trasmesso agli altri con aggiornamenti raggruppati.
+**Proposta:** disegno su telefono/tablet, riprodotto sulla TV, con variante su lavagna fisica. L'esecutore vede il soggetto, i compagni lo indovinano. La validazione segue il medesimo accordo tra avversaria proponente e squadra che gioca.
 
-I punti del tratto usano coordinate normalizzate. Sono previsti gomma, annulla e cancella. Il server controlla identità del disegnatore, frequenza e dimensione dei messaggi; conserva checkpoint del disegno per i rientri. Il soggetto non deve finire nel nome della tela o nei suoi metadati pubblici.
+| Contenuto | Disegnatore | Compagni | Tutte le avversarie e i loro componenti | TV |
+| --- | --- | --- | --- | --- |
+| Soggetto segreto | Sì | Dopo chiusura | Dopo chiusura, profilo da provare | Dopo chiusura |
+| Disegno in corso | Sì | Sì | Sì | Sì |
+| Timer e stato della prova | Sì | Sì | Sì | Sì |
+| Proposta/esito e accordo | Sì | Sì | Sì | Sì |
+
+Il tratto compare subito sul dispositivo dell'esecutore e viene trasmesso con aggiornamenti raggruppati e coordinate normalizzate. Gomma, annulla e cancella; checkpoint per i rientri. Il server controlla autore e dimensione/frequenza dei messaggi. Il soggetto resta escluso dai metadati pubblici della tela.
 
 ### 6.3 Domande
 
-Prima versione: domanda aperta, risposta orale e conferma dell'arbitro. Il modulo può aggiungere risposte scritte e scelta multipla senza cambiare il motore.
+Prova pubblica iniziale a risposta orale. Prenota il telefono ufficiale; una squadra diversa da quella che ha risposto propone l'esito e la squadra interessata lo accetta o contesta. Risposte scritte e scelta multipla sono estensioni del modulo.
 
-Per correzioni automatiche si usano prima risposte e varianti autorizzate nella carta. L'AI può suggerire un giudizio sulle formulazioni aperte; la decisione contestabile resta all'arbitro.
+| Contenuto | Squadra di turno | Squadra prenotata | Altre squadre e componenti | TV |
+| --- | --- | --- | --- | --- |
+| Domanda | Sì | Sì | Sì | Sì |
+| Soluzione e varianti canoniche | Dopo chiusura | Dopo chiusura | Dopo chiusura | Dopo chiusura |
+| Tempo totale / tempo di risposta | Sì | Sì | Sì | Sì |
+| Risposta dichiarata, proposta e accordo | Sì | Sì | Sì | Sì |
 
-### 6.4 Morphing: definizione ancora aperta
+Le colonne sono relazioni che possono sovrapporsi. Nessuna squadra ottiene la soluzione anticipata solo perché è di turno o deve proporre un esito. Il server può confrontare la risposta con varianti autorizzate e offrire un riscontro; l'AI può suggerire, senza diventare decisore finale.
 
-**Assunzione provvisoria:** riconoscere un soggetto mentre un'immagine si trasforma o viene progressivamente rivelata. Va chiarito se si intende transizione fra due soggetti, fusione di volti, immagini deformate o un altro meccanismo.
+### 6.4 Morphing di volti
 
-Il modulo espone una timeline di media e una soluzione; il tipo di trasformazione resta configurabile. Durante la prenotazione si può fermare l'immagine, mentre il tempo generale continua, salvo pausa dell'arbitro.
+**Meccanica confermata dall'utente, già sperimentata in un'altra prova:**
 
-Il primo prototipo userà media predisposti. AI testuale, generazione immagini e trasformazione di immagini sono capacità distinte: un modello linguistico generico non è sufficiente a produrre ogni tipo di media. Niente generazione pesante nel percorso critico della prova.
+1. Si parte dal volto/maschera standard di Dalí de *La casa di carta*.
+2. Una sequenza di immagini trasforma progressivamente il volto iniziale nel volto di un personaggio famoso oppure di un'altra persona.
+3. Si avanza di **un'immagine ogni secondo**.
+4. Quando una squadra ottiene la prenotazione, si congelano **sia il morphing sia il timer totale** al valore corrente.
+5. Parte soltanto il tempo di risposta configurato per il morphing.
+6. Una squadra avversaria propone l'esito e quella che ha risposto lo accetta o contesta.
+7. Se la risposta non conclude l'attività, il morphing riparte solo dopo il **Riprendi di tutte le squadre**, applicando l'eventuale salto della successiva finestra a chi ha sbagliato.
+8. Alla ripresa continuano tempo residuo e sequenza dal punto congelato; i secondi trascorsi per risposta e attesa non vengono recuperati accelerando le immagini.
+
+| Contenuto | Squadra di turno | Squadra prenotata | Altre squadre e componenti | TV |
+| --- | --- | --- | --- | --- |
+| Immagine corrente autorizzata | Sì | Sì | Sì | Sì |
+| Immagini future / volto finale non ancora raggiunto | No | No | No | No |
+| Nome/soluzione del soggetto | Dopo chiusura | Dopo chiusura | Dopo chiusura | Dopo chiusura |
+| Timer, prenotazione e stato Riprendi | Sì | Sì | Sì | Sì |
+| Risposta dichiarata, proposta e accordo | Sì | Sì | Sì | Sì |
+
+Il profilo di visibilità può essere modificato per le prove. La prima impostazione protegge i fotogrammi futuri: non si distribuisce al browser un archivio completo contenente già la soluzione o URL prevedibili del volto finale.
+
+**Proposta di realizzazione:** sequenze preprodotte e manifest con ordine delle immagini, passo di 1 secondo, soluzione e varianti accettate. Il server conserva indice e frazione residua del passo, così una pausa non provoca salti o avanzamenti automatici alla riapertura. Le viste recuperano lo stesso stato autorevole.
+
+Numero di immagini, tempo totale, scelta dei volti e formato degli asset restano da definire. Il precedente prototipo potrà essere riutilizzato quando il relativo materiale sarà disponibile nel progetto. Preparazione della sequenza e generazione AI sono attività separate dalla riproduzione della prova.
 
 ### 6.5 Moduli successivi
 
-Mimo riutilizza segreto personale e timer. Indovina la canzone riutilizza media pubblici, prenotazione e punteggio comune; catalogo, disponibilità offline e diritti dei brani devono essere definiti prima del rilascio del modulo.
+Mimo riutilizza esecutore, segreto e timer. Indovina la canzone riutilizza media pubblici, prenotazione e consensi, con una propria matrice e tempi. Disponibilità dei brani, diritti e futuro uso offline vanno definiti prima del rilascio.
 
-I riferimenti a Taboo e Pictionary descrivono il tipo di meccanica. Nome commerciale, grafica, regole editoriali e cataloghi del prodotto dovranno essere originali o utilizzabili con autorizzazione; non si assume di poter importare mazzi commerciali.
+I riferimenti a Taboo e Pictionary descrivono la meccanica. Nome, grafica e cataloghi del prodotto dovranno essere originali o utilizzabili con autorizzazione. Le sequenze di volti e i relativi media mantengono provenienza e condizioni d'uso.
 
 ## 7. Esperienza visiva e uso dei dispositivi
 
@@ -230,16 +375,16 @@ I riferimenti a Taboo e Pictionary descrivono il tipo di meccanica. Nome commerc
 
 | Superficie | Priorità |
 | --- | --- |
-| Telefono giocatore | Un'azione principale evidente, pulsante grande, ruolo e stato chiari |
+| Telefono personale non ufficiale | Contenuti consentiti dal profilo del gioco, ruolo e stato chiari; prenotazione non disponibile |
 | Telefono esecutore | Carta segreta leggibile, protezione dal mostrare accidentalmente il contenuto |
-| Console squadra | Prenotazione, nome squadra, stato del portavoce e risposta |
-| Regia organizzatore | Avvio, assegnazione ruoli, pausa, esiti, dispositivi connessi e rettifiche |
+| Telefono ufficiale / console squadra | Prenotazione grande, stato di abilitazione, risposta, proposte e consensi secondo permessi |
+| Regia organizzatore | Avvio, ruoli, telefono ufficiale, profili di visibilità, consultazioni e dispositivi connessi |
 | TV | Attività pubblica, timer, squadra di turno, prenotazione e classifica leggibili da lontano |
 | Catalogo carte | Ricerca, filtri, revisione, provenienza, qualità e importazione |
 
 Accessibilità: simboli insieme ai colori, contrasto adeguato, opzione movimento ridotto, testo ridimensionabile, vibrazione/audio opzionali e navigazione senza touch dove necessaria. Interfaccia iniziale italiana; struttura pronta alla localizzazione.
 
-La PWA deve segnalare chiaramente connessione persa, riconnessione, ruolo cambiato e contenuti offline incompleti. Non deve mostrare una prenotazione come vincente prima della conferma del server.
+La PWA deve segnalare chiaramente connessione persa, riconnessione, ruolo cambiato, telefono ufficiale e finestra saltata. I consensi mostrano chi ha risposto, la soglia applicata e lo stato del fermo. Le indicazioni sui contenuti offline incompleti appartengono alla futura modalità locale. Non deve mostrare una prenotazione come vincente prima della conferma del server.
 
 ### TV, Android TV e Fire TV
 
@@ -259,9 +404,9 @@ Browser disponibile, telecomando, fullscreen, audio e installabilità PWA su And
 | Frontend | React + TypeScript, build Vite e PWA | Viste per telefono, regia e TV; installazione dove supportata |
 | Stato client | Query per dati server e store limitato alla UI | L'autorità del gioco resta nel backend |
 | Disegno | Canvas con protocollo di tratti | Feedback locale rapido e riproduzione sugli altri schermi |
-| Media | Archivio file locale e object storage in cloud | Pacchetti offline, immagini e audio fuori dalle tabelle principali |
+| Media | Object storage in cloud e contratto di storage portabile | Immagini e audio fuori dalle tabelle; archivio locale futuro |
 | Attività AI | Worker .NET con coda persistita e adattatori | Generazione fuori dal percorso della prenotazione |
-| Deploy iniziale | Container per applicazione, PostgreSQL e reverse proxy | Ambienti riproducibili in cloud e sul server locale |
+| Deploy iniziale | Container per applicazione, PostgreSQL e reverse proxy | Ambienti cloud riproducibili; distribuzione locale futura |
 | Osservabilità | Log strutturati, metriche e tracing OpenTelemetry | Diagnosi dei problemi di partita e dei connettori |
 | Contratti | API HTTP versionate, OpenAPI ed eventi realtime versionati | Integrazione frontend, dispositivi e compatibilità |
 
@@ -276,12 +421,13 @@ Moduli funzionali:
 - Identità e accessi.
 - Stanze, squadre e partecipanti.
 - Motore di partita, turni, timer e modificatori.
-- Punteggi e arbitraggio.
+- Punteggi, proposte di esito e consensi tra squadre.
+- Profili di visibilità versionati per gioco e fase.
 - Catalogo contenuti, revisioni e pacchetti.
 - Orchestrazione AI.
 - Registro dei giochi e relativi adattatori.
 - Display e dispositivi.
-- Salvataggio, esportazione e sincronizzazione.
+- Salvataggio e portabilità; sincronizzazione offline futura.
 
 Il dominio resta separato da HTTP, SignalR, PostgreSQL e provider AI. API e hub sono ingressi dello stesso livello applicativo: non duplicano le regole.
 
@@ -300,28 +446,33 @@ flowchart TD
     A --> L["Provider AI autorizzato"]
 ```
 
-Il diagramma descrive una singola autorità, eseguita nel cloud oppure sul server locale. Il worker prepara contenuti; soltanto il motore può cambiare stato di gioco e punti.
+Il diagramma descrive una singola autorità, inizialmente online. Il futuro server locale riutilizzerà i contratti del dominio; la sua distribuzione non fa parte del primo rilascio. Il worker prepara contenuti; soltanto il motore può cambiare stato di gioco e punti.
 
 ## 9. Contratto dei moduli e modificatori futuri
 
-Ogni modulo dichiara ID, versione, modalità ammesse, schema della carta, ruoli, capacità richieste, durata e regole di visibilità. Offre operazioni per preparare la prova, validare azioni, produrre esiti e costruire le viste autorizzate.
+Ogni modulo dichiara ID/versione, modalità ammesse, schema della carta, attori ed eventuale esecutore, capacità richieste, tempo totale, tempo di risposta, comportamento dei media e **profilo di visibilità per ruolo/fase**.
 
-| Responsabilità | Motore comune | Modulo di gioco |
+Il motore fornisce prenotazione, consultazioni e movimenti punti. Il modulo interpreta la prova e propone gli effetti previsti dal profilo; non può aggirare l'accordo richiesto o concedere a un telefono personale il permesso ufficiale.
+
+| Responsabilità | Motore comune | Modulo |
 | --- | --- | --- |
-| Stanze, identità e turnazione | Sì | Usa i contratti |
-| Apertura e assegnazione prenotazione | Sì | Dichiara se necessaria |
-| Validazione carta | Schema comune | Vincoli specifici |
-| Timer | Infrastruttura comune | Durate e condizioni previste |
-| Valutazione | Applica esito autorizzato | Interpreta regole della prova |
-| Punti | Registra movimenti una sola volta | Propone esiti previsti dal profilo |
-| Informazioni segrete | Applica autorizzazione | Definisce segreti e destinatari |
-| Rendering | Shell e componenti condivisi | Viste specifiche React |
+| Stanze, squadre e turnazione | Gestione autorevole | Usa i contratti |
+| Telefono ufficiale e prenotazione | Autorizzazione e assegnazione atomica | Dichiara l'uso della prenotazione |
+| Visibilità | Applica profilo versionato | Dichiara contenuti, ruoli e fasi |
+| Timer | Congela/riprende gli orologi previsti | Configura tempi per tipo di gioco |
+| Media progressivi | Stato e indice autorevoli | Definisce sequenza e passo |
+| Esito | Proposta e accettazione tra squadre | Definisce i risultati ammissibili |
+| Pausa | Fermo immediato e maggioranza stretta | Dichiara elementi temporali da sospendere |
+| Annullamento | Consenso unanime e compensazioni | Definisce gli effetti e i contenuti coinvolti |
+| Riprendi pubblico progressivo | Raccoglie tutte le squadre | Dichiara quando necessario |
+| Penalità sulla prossima finestra | Ammissione temporanea e rientro | Abilita o meno la variante |
+| Rendering | Shell e componenti condivisi | Viste React specifiche |
 
-**Modularità iniziale:** moduli fidati inclusi nella build e registrati esplicitamente. Aggiungere un gioco può richiedere aggiornare backend e frontend; non si promette caricamento di codice arbitrario a runtime.
+**Modularità iniziale:** moduli fidati registrati nella build. Aggiungere un gioco può richiedere aggiornare backend e frontend; il profilo di visibilità e i parametri esposti sono invece modificabili per configurazione.
 
-Una partita salva le versioni di modulo, carta e regole. Un aggiornamento non modifica una partita in corso. I pacchetti dichiarano la compatibilità con il motore.
+La partita salva versioni di modulo, carta, regole e visibilità. Le modifiche da prove sul campo non cambiano retroattivamente segreti o punteggi di un'attività avviata.
 
-**Estensione per tabellone/eventi:** punti di intervento prima della selezione attività, prima dell'avvio, dopo l'esito e prima del cambio turno. I modificatori sono ordinati, versionati e con effetti controllati. Il motore impedisce bonus doppi, cicli di turni infiniti e combinazioni incompatibili. L'AI potrà suggerire eventi soltanto fra azioni autorizzate.
+**Estensioni future:** modificatori prima della selezione, prima dell'avvio, dopo l'esito e prima del cambio turno. Effetti ordinati, versionati e controllati; prevenzione di bonus doppi, cicli e combinazioni incompatibili. L'AI può proporre soltanto azioni autorizzate.
 
 ## 10. Realtime, concorrenza e ripristino
 
@@ -329,12 +480,14 @@ Una partita salva le versioni di modulo, carta e regole. Un aggiornamento non mo
 
 ### 10.1 Una sola autorità per partita
 
-- Il server decide ordine delle azioni, stato, timer, prenotazione ed esito.
+- Il server decide ordine delle azioni, stato, timer e prenotazione; conferma gli esiti solo dopo i consensi richiesti.
 - Ogni comando porta identificativo univoco, partita, attività e versione attesa quando serve.
-- L'attore è ricavato dalla sessione autenticata; una squadra dichiarata dal client non viene considerata attendibile.
+- L'attore è ricavato dalla sessione autenticata; squadra, ruolo e qualifica di telefono ufficiale sono verificati sul server.
 - I cambiamenti di stato sono serializzati per partita e confermati in transazione.
 - Una prenotazione usa una condizione atomica sullo stato; l'assegnazione non dipende da due controlli separati.
-- Un vincolo persistente e una chiave di idempotenza impediscono doppi tentativi o doppi punti.
+- Un vincolo persistente e una chiave di idempotenza impediscono doppi tentativi, doppi voti della stessa squadra o doppi punti.
+- Proposte e consultazioni hanno un ID/versione; un consenso tardivo per una richiesta già conclusa viene respinto.
+- Prenotazione, pausa e scadenza concorrenti sono ordinate sulla stessa autorità: una pausa successiva non rende valido un comando già scaduto.
 - Stato, movimenti punti ed eventi da pubblicare vengono salvati insieme, con outbox transazionale.
 - La consegna può ripetersi: client e consumatori deduplicano gli eventi tramite ID/versione.
 
@@ -342,59 +495,55 @@ Una coda in memoria può ordinare le richieste nel singolo processo; la corrette
 
 ### 10.2 Timer e riconnessione
 
-Il server trasmette stato, ora di riferimento, scadenze e tempo residuo in pausa. Il client disegna il conto alla rovescia con un orologio monotono ricalibrato; l'invio di un evento ogni secondo non è necessario.
+Il server mantiene separati tempo totale della prova, tempo di risposta e progresso dei media. Trasmette stato, ora di riferimento, scadenze, tempi congelati, indice del morphing e stato dei consensi. Il client disegna i contatori con un orologio monotono ricalibrato; gli scatti del morphing sono eventi della timeline, non l'orologio autorevole del gioco.
+
+Nel morphing la prenotazione congela tempo totale e immagini e attiva il solo timer di risposta. Al termine del tentativo i tempi restano sospesi durante accordo e attesa dei Riprendi. Una pausa respinta riprende dal valore memorizzato, senza sottrarre il periodo di voto e senza generare un nuovo salto di finestra.
 
 Alla riconnessione, il server rivalida appartenenza e ruolo e invia una nuova vista autorizzata con versione corrente. Non si presume che i messaggi persi siano stati consegnati. I gruppi SignalR sono strumenti di instradamento, non un confine di autorizzazione [S4].
 
 Un telefono sospeso dal sistema operativo non può garantire una connessione continua. Al rientro la UI recupera lo stato; per il gioco attivo si raccomanda lo schermo in primo piano, con blocco spegnimento dove supportato e un comportamento di fallback.
 
-**Proposta di ripristino:** dopo riavvio del server una prova incompleta torna in pausa e richiede conferma della regia. Si conservano i punti già confermati; nessun timeout ambiguo viene convertito automaticamente in penalità durante il fermo.
+**Proposta di ripristino:** dopo riavvio del server una prova incompleta torna in un fermo tecnico che conserva punti, tempi, fotogramma, telefono ufficiale e consultazioni persistite. Il fermo tecnico è distinto dalla pausa chiesta da una squadra e non assegna penalità. La procedura di ripartenza deve rispettare i consensi del gioco, in particolare i Riprendi unanimi delle prove pubbliche progressive.
 
-## 11. Cloud e gioco senza Internet
+La perdita di una connessione non riduce automaticamente il numero di squadre necessario per un consenso. La gestione delle assenze prolungate resta da decidere.
 
-### 11.1 Modalità operative
+## 11. Offline: predisposizione architetturale per una fase futura
 
-| Modalità | Autorità | Requisiti | AI e contenuti |
-| --- | --- | --- | --- |
-| Cloud | Backend remoto | Internet per i partecipanti | Catalogo e AI online autorizzata |
-| Locale con Internet | Server su PC/mini PC | LAN comune; Internet facoltativo per il gioco | Catalogo locale e possibile connettore ChatGPT personale |
-| Locale senza Internet | Stesso server locale | LAN/Wi-Fi attiva, server e pacchetti disponibili | Carte/media scaricati; modello locale futuro opzionale |
-| Solo dispositivo, futura | Runtime dedicato o modalità pratica | Progetto separato da definire | Non copre il multiplayer locale richiesto |
+### 11.1 Ambito confermato
 
-**Scelta proposta:** per il multiplayer senza Internet usare un server locale .NET con PostgreSQL, avviabile sul PC dell'organizzatore. Telefoni e TV si collegano alla sua rete. Un telefono browser non diventa automaticamente un server .NET/PostgreSQL per tutti gli altri.
+**Confermato:** per ora la partita offline è **soltanto una predisposizione**. Il primo rilascio giocabile richiede la connessione all'autorità online. Non include installatore di server locale, sincronizzazione, pacchetti offline completi o collaudo di una serata senza Internet.
 
-La PWA conserva shell e risorse necessarie; il database sul server conserva lo stato autorevole. Senza Internet e senza rete locale, dispositivi separati non possono coordinare una partita con questa architettura.
+Un backend avviato sul PC durante lo sviluppo o un connettore AI personale locale non costituiscono una consegna di multiplayer offline.
 
-### 11.2 Preparazione di una serata offline
+### 11.2 Cosa predisporre ora
 
-1. Installare e verificare server locale, database e reverse proxy.
-2. Predisporre LAN senza isolamento fra client, nome locale e HTTPS attendibile sui dispositivi.
-3. Importare/scaricare pacchetti di carte e tutti i media necessari.
-4. Eseguire il controllo di compatibilità, integrità e spazio disponibile.
-5. Associare regia, telefoni e display; provare ingresso e riapertura anche senza WAN.
-6. Avviare la partita con profilo offline e generazione cloud disabilitata.
-7. Salvare localmente ed esportare risultati quando utile.
+- Dominio indipendente da uno specifico servizio cloud.
+- Contratti portabili per storage, identità di stanza e provider di contenuti.
+- Stato, orologi e consensi persistibili con una sola autorità.
+- Identificativi e versioni adatti alla futura esportazione di partite e contenuti.
+- Media con manifest e riferimenti gestibili anche da storage locale.
+- Frontend PWA con gestione chiara della disconnessione, senza simulare una partita autonoma.
+- Configurazione e dipendenze che consentano un successivo pacchetto locale.
 
-Font, icone, librerie e media essenziali devono essere inclusi: nessuna dipendenza runtime da CDN nella modalità offline.
+Questi confini fanno parte della fondazione; implementazione e verifica del trasporto/salvataggio offline verranno pianificate separatamente.
 
-### 11.3 Vincolo importante: HTTPS nella LAN
+### 11.3 Ipotesi di evoluzione, da validare quando richiesta
 
-Service worker e installabilità richiedono HTTPS oppure l'eccezione localhost sul dispositivo che apre la pagina [S5]. L'indirizzo privato del PC raggiunto da un telefono non è localhost del telefono.
+| Modalità futura | Autorità possibile | Requisiti da verificare |
+| --- | --- | --- |
+| Locale con Internet | Server .NET/PostgreSQL sul PC o mini PC | LAN, accesso dai dispositivi, contenuti e connettori autorizzati |
+| Locale senza Internet | Stesso server con contenuti predisposti | Media completi, autenticazione locale, risorse prive di dipendenze esterne |
+| Pratica su singolo dispositivo | Runtime dedicato o modulo separato | Scopo e regole ancora da definire |
 
-Serve quindi una soluzione verificata per certificato e nome del server locale: ad esempio certificato installato come attendibile sui dispositivi della prova personale, oppure dominio e certificato predisposti prima della serata con risoluzione locale. Vanno testati Android, iOS e display reali; se l'esperienza di installazione risulta scomoda, si valuterà un contenitore applicativo successivo. Non basta ignorare un avviso del browser per dichiarare risolta la PWA.
+Per il multiplayer locale si considera un server sul PC dell'organizzatore, distinto dai browser dei telefoni. Shell PWA in cache e partita multiplayer operativa sono capacità diverse.
 
-### 11.4 Perdita di rete e sincronizzazione
+Service worker e installabilità richiedono HTTPS oppure localhost del dispositivo [S5]. Il futuro pacchetto locale dovrà risolvere nomi, certificati attendibili e accessibilità LAN su telefoni e TV reali. Queste prove non bloccano ora il primo rilascio online.
 
-- Una partita nata nel cloud si mette in attesa alla perdita di connessione e riprende sullo stesso server.
-- Una partita nata sul server locale continua alla perdita della WAN.
-- Il primo rilascio non effettua migrazione automatica cloud-locale nel mezzo di una prova.
-- Un eventuale passaggio manuale richiede pausa, checkpoint confermato e disattivazione dell'autorità precedente; sarà una funzione successiva.
-- I comandi competitivi, soprattutto prenotazioni e risposte, non vengono accodati offline per riprodurli più tardi.
-- Risultati locali e pacchetti possono essere importati nel cloud con identificativi univoci e deduplicazione.
-- Una sincronizzazione non fonde due storie divergenti della stessa partita.
-- Cache cloud e cache locale appartengono a origini diverse; la presenza dell'una non garantisce la disponibilità dell'altra.
+### 11.4 Disconnessione nel rilascio iniziale
 
-Le cache client non contengono interi mazzi segreti. Il server locale custodisce i pacchetti; i client ricevono solo il contenuto necessario al ruolo e alla prova.
+Un dispositivo che perde il canale online mostra l'attesa e si riallinea alla riconnessione. Non accoda prenotazioni/risposte competitive da riprodurre in seguito. Se manca l'autorità di gioco, la partita non prosegue autonomamente sui client.
+
+La futura sincronizzazione dovrà preservare una sola storia della partita, deduplicare importazioni e impedire due autorità contemporanee. Migrazione cloud-locale durante una prova e fusione di partite divergenti non sono capacità iniziali.
 
 ## 12. Contenuti e catalogo delle carte
 
@@ -440,7 +589,7 @@ Le normali API OpenAI hanno fatturazione distinta dall'abbonamento ChatGPT [S8].
 
 L'astrazione distingue generazione testuale strutturata, immagini, trasformazioni, audio, revisione e ricerca con fonti. Ogni provider dichiara le capacità disponibili. Una semplice URL compatibile non garantisce schema, strumenti o qualità equivalenti.
 
-Connettori sul server o sul runtime locale autorizzato; token fuori da bundle React, localStorage, URL e log. Il runtime gestisce revoca, rinnovo e indisponibilità. Una futura associazione fra runtime personale e partita cloud richiederebbe un canale ristretto a lavori di generazione autorizzati: non è necessaria per il primo prototipo locale.
+Connettori sul server o sul runtime locale autorizzato; token fuori da bundle React, localStorage, URL e log. Il runtime gestisce revoca, rinnovo e indisponibilità. La prova del connettore personale sul PC è distinta dall'offline multiplayer. Per alimentare una partita online con tale runtime servirà un percorso autorizzato da verificare: inizialmente può bastare generare e importare carte; un collegamento live richiederebbe un canale limitato ai lavori consentiti.
 
 Non si prevedono estrazione di cookie, condivisione di credenziali o automazione della pagina ChatGPT come interfaccia backend.
 
@@ -471,7 +620,7 @@ La qualità è un requisito centrale. Una seconda risposta dello stesso modello 
 4. **Revisione critica separata:** nuova richiesta con rubrica di valutazione e rapporto dei difetti; opzionalmente modello/provider diverso per ridurre errori correlati.
 5. **Verifica fattuale per i quiz:** riscontro della soluzione su fonti affidabili dove necessario. Un URL inventato dal modello non conta come fonte verificata.
 6. **Revisione umana:** richiesta per pubblicare un mazzo stabile. Chi approva un mazzo non dovrebbe poi ricevere un vantaggio competitivo nella stessa serata.
-7. **Monitoraggio in partita:** segnalazione della carta, annullamento dell'attività quando necessario e quarantena prima del riuso.
+7. **Monitoraggio in partita:** segnalazione della carta, proposta di annullamento da un'avversaria e accettazione unanime quando necessaria; quarantena prima del riuso.
 8. **Valutazione periodica:** confronto con un insieme di carte controllate e casi difettosi, prima di cambiare modello o prompt.
 
 ### 14.2 Rubrica per gioco
@@ -485,7 +634,7 @@ La qualità è un requisito centrale. Una seconda risposta dello stesso modello 
 
 **Modalità affidabile:** catalogo approvato. **Modalità sperimentale:** generazione durante la partita, verificata automaticamente, esplicitamente abilitata e contestabile; non viene presentata come equivalente a una revisione umana.
 
-L'organizzatore che gioca non deve vedere in anticipo la carta per approvarla. In quel caso si usa catalogo preparato da altri oppure si accetta il rischio della modalità sperimentale con un arbitro appropriato.
+L'organizzatore che gioca non deve ricevere soluzioni anticipate per approvare una carta durante la partita. Può usare un catalogo preparato da altri oppure la modalità sperimentale con verifiche automatiche e valutazione concordata tra squadre. La revisione editoriale di un mazzo e l'accordo sul risultato di una prova sono processi distinti.
 
 Obiettivo di valutazione iniziale proposto: campione umano di almeno 50 carte per ciascun modulo testuale, più un insieme di errori intenzionali. Si misurano validità dello schema, errori fattuali/ambiguità, adeguatezza della difficoltà, duplicazioni, costo e tempo di generazione. I casi gravi noti devono essere respinti; non si promette assenza assoluta di errori su contenuti nuovi.
 
@@ -501,16 +650,24 @@ Le richieste AI trattano temi e materiale importato come dati, con strumenti e a
 | Participant / SessionRole | Identità ospite o utente, ruolo e permessi correnti |
 | GameDefinition / GameModuleVersion | Modulo, capacità e versione compatibile |
 | RulesetVersion | Punteggi, limiti, selezione e modificatori congelati per partita |
-| Turn / Activity | Squadra di turno, modulo, carta, ruoli, scadenze e stato |
+| VisibilityProfileVersion | Matrice per modulo, contenuto, ruolo e fase; versione usata dall'attività |
+| GameTimingProfile | Tempo totale, risposta e progresso per tipo di gioco |
+| Turn / Activity | Squadra di turno, modulo, carta, ruoli, orologi separati e stato |
+| ActivityMediaState | Indice del fotogramma e frazione residua del passo congelato |
 | Card / CardRevision | Identità della carta, payload immutabile e ciclo di revisione |
 | ContentPack / MediaAsset | Pacchetti, integrità, file, provenienza e disponibilità |
-| BuzzAttempt / AnswerAttempt | Richiesta, finestra, squadra, esito e idempotenza |
+| BuzzWindow / BuzzAttempt / AnswerAttempt | Finestra numerata, ammissione, richiesta ufficiale, risposta e idempotenza |
+| WindowEligibility | Eventuale esclusione dalla sola finestra successiva e rientro |
+| OutcomeProposal / OutcomeAcceptance | Proponente avversaria, squadra interessata, versione dell'esito e accordo |
+| Consultation / TeamVote | Pausa o annullamento, soglia, squadre richieste e voto univoco |
+| ResumeAcknowledgement | Riprendi di ogni squadra per la specifica ripresa |
 | ScoreEntry | Movimento punti firmato dal comando applicativo e motivo |
-| Device / DeviceAssignment | Display o pulsante, credenziali e associazione a stanza/squadra |
+| Device / DeviceAssignment | Telefono ufficiale, altri telefoni, display o pulsante futuro; capacità e trasferimenti |
 | AiConnection / GenerationJob | Riferimento protetto al provider e lavoro di generazione |
 | ValidationReport / ContentFeedback | Controlli, difetti, revisione e segnalazioni |
 | OutboxEvent / AuditEntry | Pubblicazione affidabile e operazioni rilevanti |
-| SessionCheckpoint / ImportReceipt | Ripristino, esportazione e deduplicazione import |
+| SessionCheckpoint | Stato per ripristino di attività, orologi, consensi e media |
+| ImportReceipt, futura | Deduplicazione delle importazioni nella futura modalità portabile |
 
 Relazioni e vincoli fanno riferimento alla partita: appartenere alla squadra X in una stanza non autorizza accesso a un'altra. Timestamp di persistenza in UTC e formattazione locale nell'interfaccia. UUID o identificativi equivalenti per importazione senza collisioni.
 
@@ -524,13 +681,13 @@ PostgreSQL conserva dati transazionali e metadati. File multimediali restano nel
 
 Ogni dispositivo può: associarsi a una squadra, indicare stato e batteria quando misurabile, prenotare, ricevere conferma, mostrare vincitore/blocco e segnalare disconnessione. Non conserva soluzioni o account AI.
 
-La pressione ha ID/contatore e finestra di attività; il server verifica associazione e ammissibilità. Una pressione ricevuta due volte resta un solo tentativo. Debounce e feedback locale distinguono “premuto/inviato” da “prenotazione assegnata”.
+La pressione ha ID/contatore e finestra di attività; il server verifica associazione e ammissibilità. Nel futuro profilo hardware va definito il rapporto con il telefono ufficiale: sostituzione della sua funzione di prenotazione oppure canale aggiuntivo controllato. L'ESP32 non abilita automaticamente tutti i telefoni. Una pressione ricevuta due volte resta un solo tentativo. Debounce e feedback locale distinguono “premuto/inviato” da “prenotazione assegnata”.
 
 ### 16.2 Comunicazione proposta
 
 ESP32 con Wi-Fi verso un adattatore dispositivi .NET, tramite un protocollo WebSocket dedicato e semplice, autenticato. Non si impone all'ESP32 di implementare il protocollo SignalR. MQTT con broker locale e TLS resta un'alternativa supportabile tramite adattatore; Espressif documenta il relativo client [S9].
 
-Un solo protocollo verrà scelto con una prova di latenza, riconnessione e consumo. Il dispositivo non può selezionare arbitrariamente un'altra squadra o ottenere permessi da organizzatore. Associazione breve, credenziali per dispositivo e possibilità di revoca.
+Un solo protocollo verrà scelto con una prova di latenza, riconnessione e consumo. Si confronterà la precisione dell'ordine di pressione con quella dei telefoni; il vantaggio atteso non è ancora una prestazione dimostrata. Il dispositivo non può selezionare arbitrariamente un'altra squadra o ottenere permessi da organizzatore. Associazione breve, credenziali per dispositivo e possibilità di revoca.
 
 ### 16.3 Fasi hardware successive
 
@@ -551,7 +708,9 @@ Nessuna autonomia numerica viene fissata prima di conoscere capacità della batt
 - Login proprio per organizzatore; ospiti con permessi minimi e inviti revocabili.
 - Codice stanza per trovare la partita; ingresso approvato o invito protetto per ottenere un ruolo. Un codice breve da solo non autorizza operazioni amministrative.
 - Sessioni web con cookie protetti, policy CSRF/CORS/origini e autorizzazione dei comandi.
-- Verifica corrente di ruolo, squadra e stato anche sugli hub; revoche applicate alle connessioni attive.
+- Verifica corrente di ruolo, squadra, telefono ufficiale e stato anche sugli hub; revoche applicate alle connessioni attive.
+- Matrici versionate applicate sul server, con anteprima per ruolo e controllo delle configurazioni.
+- Un voto per squadra, accettazione legata alla versione dell'esito e nessun cambio implicito di quorum per disconnessione.
 - Cache pubbliche e cache personali separate, pulizia al logout/cambio ruolo, soluzioni escluse dalla cache indiscriminata del service worker.
 - Segreti in archivio protetto locale o servizio dedicato; chiavi di protezione persistenti e backup coerenti.
 - Limiti su tentativi di ingresso, messaggi, caricamenti, URL e richieste AI.
@@ -574,7 +733,7 @@ La versione pubblica richiederà anche scelte esplicite su conservazione/cancell
 
 ### 17.3 Verifiche software che contano
 
-Test sulle regole di rotazione e punteggio; due prenotazioni concorrenti; riinvio dello stesso comando; timer/scadenze; passaggio di ruolo; mancata diffusione di soluzioni; arresto dopo commit e prima dell'evento; rientro del client; import di pacchetto difettoso.
+Test sulle regole di rotazione e punteggio; prenotazioni concorrenti e rifiuto di telefoni non ufficiali; trasferimento della console; riinvio di comando/voto; consenso bilaterale dell'esito; maggioranza stretta della pausa; unanimità dell'annullamento e dei Riprendi; timer congelato con penalità applicata una volta; salto di una sola finestra senza esclusione totale; fotogramma e tempo residuo del morphing; matrici per ogni ruolo/fase; arresto dopo commit e prima dell'evento; rientro del client. L'importazione di pacchetti offline verrà collaudata nella fase futura dedicata.
 
 Integrazione su PostgreSQL reale per transazioni e vincoli; prove end-to-end con più browser e ruoli; collaudo su telefoni/TV reali. Non basta verificare ogni schermata singolarmente.
 
@@ -584,15 +743,20 @@ Integrazione su PostgreSQL reale per transazioni e vincoli; prove end-to-end con
 
 | Criterio | Verifica proposta |
 | --- | --- |
-| Realtime LAN | Conferma di prenotazione p95 entro 150 ms sul banco di riferimento |
+| Ordine prenotazioni | Ordine autorevole registrato e confronto fra istante di pressione misurato e ricezione; nessuna promessa di precisione assoluta |
 | Realtime cloud | p95 entro 500 ms nel profilo di rete dichiarato, con RTT riportato |
-| Prenotazioni concorrenti | Un solo vincitore valido per finestra; nessun doppio punto |
+| Prenotazioni concorrenti | Un solo vincitore valido per finestra; telefoni non ufficiali respinti; nessun doppio punto |
+| Consensi | Esito bilaterale, annullamento unanime, pausa a maggioranza stretta e Riprendi di tutti verificati separatamente |
+| Pausa respinta | Ripresa dal valore congelato e -1 applicato una sola volta |
+| Esclusione temporanea | Solo la prossima finestra saltata; rientro alla seguente e almeno una squadra ammessa |
+| Morphing | 1 immagine/s; prenotazione congela immagini e tempo totale; risposta ha timer proprio; Riprendi di tutte le squadre |
+| Profili di visibilità | Ogni modulo ha matrice modificabile; Taboo può mostrare le vietate a tutti i componenti avversari |
 | Riconnessione | Vista coerente entro 5 s dal ripristino del canale nel banco di riferimento |
-| Timer | Divergenza visiva obiettivo entro 250 ms in LAN; server sempre autorevole |
+| Timer | Congelamento e ripresa coerenti, senza consumare il periodo di voto; accuratezza visiva misurata sul banco dichiarato |
 | Riservatezza | Soluzioni assenti da payload, storage e cache dei ruoli non autorizzati |
-| Offline reale | Nuova partita completa in LAN con WAN disconnessa e risorse predisposte |
+| Predisposizione offline | Contratti portabili e dipendenze cloud isolate; partita senza WAN da collaudare in una fase futura |
 | Indisponibilità AI | Avvio con carta di riserva oppure scelta esplicita prima del timer |
-| Ripristino server | Punti confermati conservati; attività incompleta recuperata in pausa |
+| Ripristino server | Punti, tempi, indice morphing e consensi conservati; recupero in fermo tecnico |
 | PWA | Installazione/riapertura verificate sui dispositivi dichiarati supportati |
 | Disegno | Tratti e checkpoint recuperabili senza inviare il soggetto ai solutori |
 | Manutenibilità | Nuovo modulo aggiunto tramite i contratti senza riscrivere la turnazione |
@@ -603,71 +767,112 @@ La misurazione registra server, browser, dispositivi, Wi-Fi e numero di connessi
 
 | Fase | Consegna | Condizione di completamento |
 | --- | --- | --- |
-| 0 — Decisioni e prove tecniche | ADR, verifica ChatGPT locale, connessione multiruolo, prenotazione atomica, HTTPS LAN e display reali | Risolti i vincoli che possono cambiare l'architettura |
-| 1 — Fondazione | Soluzione .NET, React/PWA, PostgreSQL, identità, contratti, migrazioni e pipeline | Avvio riproducibile, ruoli verificati e stato persistente |
-| 2 — Prima partita completa | Quiz da catalogo, squadre, TV, timer, prenotazioni, punteggi, riconnessione | Una partita cloud completa e ripristinabile |
-| 3 — Multigioco e locale | Taboo, disegno, regole condivise, pacchetti e distribuzione server locale | Partita mista e partita senza WAN completate |
-| 4 — AI personale e qualità | Catalogo revisionabile, connettore autorizzato, generazione e fallback | Qualità misurata e gestione indisponibilità provata |
-| 5 — Morphing e compatibilità TV | Meccanica concordata, media e prova sui dispositivi scelti | Esperienza verificata su hardware reale |
-| 6 — ESP32 | Firmware, protocollo, elettronica, prototipo e contenitore | Prenotazione interoperabile e consumi misurati |
-| 7 — Evoluzione pubblica | Provider API, isolamento ampliato, esercizio e aspetti di distribuzione | Riesame tecnico, contenuti e gestione del servizio |
-| 8 — Espansioni | Mimo, canzoni, tabellone, eventi e AI dinamica | Singoli moduli con criteri di accettazione propri |
+| 0 — Decisioni e prove tecniche | ADR, fattibilità ChatGPT personale, connessioni multiruolo, telefono ufficiale, prenotazione atomica, profili visibilità e consensi | Risolti i vincoli del primo rilascio online |
+| 1 — Fondazione | .NET, React/PWA, PostgreSQL, identità, contratti, migrazioni e pipeline; predisposizione portabile | Avvio riproducibile, ruoli e stato persistenti |
+| 2 — Prima partita online | Quiz da catalogo, squadre, TV, prenotazioni, tempi per gioco, accordi, pause, annullamento, punti e riconnessione | Partita completa con tutti i protocolli di consenso |
+| 3 — Multigioco | Taboo e disegno, matrici modificabili e regole condivise | Partita mista, vietate visibili alle avversarie secondo profilo |
+| 4 — AI personale e qualità | Catalogo revisionabile, connettore autorizzato, generazione e fallback | Qualità misurata e indisponibilità gestita |
+| 5 — Morphing e TV | Sequenze di volti a 1 immagine/s, fermo completo, risposta e Riprendi; prova TV | Esperienza verificata con i dispositivi scelti |
+| 6 — ESP32 | Protocollo, firmware, elettronica, prototipo e contenitore | Interoperabilità, precisione e consumi misurati |
+| Futuro — Offline | Server locale, pacchetti/media, identità locale e sincronizzazione | Partita senza WAN e ripristino collaudati, quando questa fase sarà autorizzata |
+| Futuro — Pubblico | Provider API, isolamento ampliato e gestione del servizio | Riesame tecnico, contenuti e distribuzione |
+| Futuro — Espansioni | Prenotazione da tutti i telefoni, mimo, canzoni, tabellone, eventi e AI dinamica | Criteri di accettazione propri per ciascuna funzione |
 
-Le fasi sono incrementi verificabili, non una stima di calendario. Ogni fase mantiene la versione precedente utilizzabile. Lo scheletro dei contratti locali/AI/dispositivi nasce prima delle relative funzionalità complete.
+Le fasi sono incrementi verificabili, non una stima di calendario. La predisposizione offline è nella fondazione; la realizzazione dell'offline non è una condizione per rilasciare il gioco online.
 
-**Ordine suggerito per l'infrastruttura:** dominio e comandi; schema e transazioni; identità e proiezioni; API/SignalR; shell React; distribuzione e telemetria. Il quiz è il primo modulo perché esercita la concorrenza, i ruoli e il punteggio comune con pochi media.
+**Ordine suggerito:** dominio e protocolli; schema e transazioni; identità, telefono ufficiale e matrici; API/SignalR; shell React; distribuzione e telemetria. Il quiz esercita per primo concorrenza e accordi; il morphing aggiunge la timeline congelabile.
 
-## 20. Decisioni da validare
+Il connettore ChatGPT locale sarà valutato anche per la preparazione/importazione di carte per partite online. Non si assume che richieda o fornisca il server multiplayer offline.
 
-È possibile approvare l'impostazione e lasciare aperti dettagli che non bloccano l'infrastruttura. Le priorità indicano ciò che serve sapere prima di implementare quella parte.
+## 20. Decisioni confermate e punti da validare
 
-| ID | Decisione | Proposta iniziale | Quando serve |
+### 20.1 Decisioni recepite dalle note dell'utente
+
+| ID | Decisione confermata |
+| --- | --- |
+| C01 | Offline soltanto predisposto in questa fase; realizzazione futura |
+| C02 | Attori: squadra esecutrice e componenti; avversarie e componenti; esecutore salvo prove collettive |
+| C03 | Destinatario individuale possibile per uno contro uno, modalità da evitare nella selezione iniziale |
+| C04 | Matrice configurabile e modificabile per ciascun gioco; Taboo deve poter mostrare le vietate a tutte le avversarie |
+| C05 | Esito proposto da un'avversaria e accettato dalla squadra interessata; accordo delle due sufficiente |
+| C06 | Annullamento proposto da un'avversaria e accettato da tutte le squadre, inclusa quella che ha giocato |
+| C07 | Un telefono ufficiale per squadra prenota; prenotazione di tutti i membri futura |
+| C08 | Tempo di risposta configurabile per tipo di gioco |
+| C09 | Penalità opzionale: salto della sola prossima riapertura nella stessa attività; non possono essere escluse tutte le squadre |
+| C10 | Massima precisione possibile sulle pressioni; futuro confronto con ESP32 |
+| C11 | Pausa richiesta da una squadra: timer subito congelato e maggioranza stretta per approvarla |
+| C12 | Pausa respinta: -1 alla proponente e ripresa dal valore congelato, senza sottrarre il tempo del voto |
+| C13 | Prova pubblica progressiva: Riprendi necessario da tutte le squadre |
+| C14 | Morphing da volto/maschera standard di Dalí a volto famoso o altra persona, 1 immagine ogni secondo |
+| C15 | Prenotazione nel morphing: fermi immagini e timer totale; parte il tempo di risposta |
+
+Queste conferme aggiornano i requisiti specifici. Non equivalgono alla validazione completa della piattaforma o all'avvio del codice.
+
+### 20.2 Proposte ancora da validare
+
+| ID | Decisione | Proposta corrente | Quando serve |
 | --- | --- | --- | --- |
-| D01 | Pubblico della prima versione | Gruppo in presenza, interfaccia italiana | Prima della fondazione |
-| D02 | Backend e struttura | .NET 10 LTS, PostgreSQL 18, React/TypeScript PWA, monolite modulare e SignalR | Prima della fondazione |
-| D03 | Offline multiplayer | PC dell'organizzatore come server locale, LAN comune e pacchetti predisposti | Prima della fondazione |
-| D04 | Piano ChatGPT | Connettore locale ufficiale se account/progetto idonei; catalogo come base sempre funzionante | Prova tecnica prima di implementare AI |
-| D05 | Ruolo dell'organizzatore | Arbitro non concorrente; variante con organizzatore giocatore separata | Prima della prima partita |
-| D06 | Identità squadra e membri | Profilo squadra, console limitata e ospiti; account individuali facoltativi | Prima del modello utenti |
-| D07 | Chi può prenotare | Ogni membro per la propria squadra; risposta del portavoce | Prima del quiz |
-| D08 | Punti e penalità | +3 corrente, +2 altre, -1 errore e blocco per attività; negativi ammessi | Prima del quiz |
-| D09 | Durata della partita | Numero configurabile di giri completi | Prima della prima partita |
-| D10 | Taboo/Pictionary | Attività della squadra di turno; disegno digitale e variante fisica | Prima dei moduli |
-| D11 | Morphing | Riconoscimento progressivo di immagini, meccanica esatta da descrivere | Prima del relativo modulo |
-| D12 | Qualità AI | Catalogo approvato come modalità affidabile; live sperimentale e contestabile | Prima della generazione diretta |
-| D13 | Hardware TV | Identificare modello Android TV/Fire TV disponibile; HDMI/browser come base | Prima del collaudo TV |
-| D14 | Host locale | Identificare PC e sistema operativo, disponibilità durante tutta la partita | Prima del pacchetto locale |
-| D15 | Pubblico e contenuti | Specificare adulti/famiglie/bambini, argomenti e difficoltà | Prima dei mazzi |
-| D16 | Stato del repository | Conservare la licenza GPL v3 attualmente presente | Prima della distribuzione |
+| D01 | Pubblico iniziale | Gruppo in presenza, interfaccia italiana | Fondazione |
+| D02 | Architettura | .NET 10 LTS, PostgreSQL 18, React/TypeScript PWA, monolite modulare e SignalR | Fondazione |
+| D03 | Account e identità | Profilo squadra, ospiti e account individuali facoltativi | Modello utenti |
+| D04 | ChatGPT personale | Connettore ufficiale idoneo; preparazione/importazione per la partita online e live da verificare | Prima dell'AI |
+| D05 | Console e comandi di consenso | Telefono ufficiale anche per proposte, voti, accettazioni e Riprendi | Prima del quiz |
+| D06 | Punteggi | +3 corrente, +2 altre, -1 errore, negativi ammessi; -1 pausa respinta già confermato | Prima del quiz |
+| D07 | Fine partita e turnazione | Giri completi, senza cambio del prossimo turno in base al vincitore pubblico | Prima partita |
+| D08 | Profili di visibilità | Matrici iniziali della sezione 6, in particolare visibilità dell'obiettivo alle avversarie | Prima dei moduli |
+| D09 | Disegno | Digitale e variante fisica | Prima del modulo |
+| D10 | Qualità AI | Catalogo approvato, live sperimentale e contestabile | Prima della generazione live |
+| D11 | TV | Identificare Android TV/Fire TV disponibili; HDMI/browser come base | Collaudo TV |
+| D12 | Contenuti | Fasce d'età, argomenti, difficoltà e volti del morphing | Prima dei mazzi |
+| D13 | Licenza | Conservare GPL v3 attualmente presente | Distribuzione |
+| D14 | Evoluzione offline | Eventuale PC host, LAN e certificati | Soltanto nella futura fase offline |
+
+### 20.3 Dettagli operativi ancora aperti
+
+| ID | Punto da definire | Vincolo già fissato |
+| --- | --- | --- |
+| O01 | Durata delle votazioni e conseguenza dei voti mancanti/disconnessioni | Soglie di maggioranza/unanimità non ridotte implicitamente |
+| O02 | Ripresa di una pausa approvata nei giochi non progressivi | Per le pubbliche progressive serve già Riprendi di tutte le squadre |
+| O03 | Gestione di un disaccordo prolungato sull'esito | Accordo tra proponente e interessata; nessun arbitro sostitutivo assunto |
+| O04 | Effetto dell'annullamento sulle penalità procedurali | Compensazione dei punti del risultato; -1 di una pausa respinta è distinto |
+| O05 | Tempi durante accordo delle singole carte nelle prove senza prenotazione | Profilo per tipo di gioco; nessuna pausa unilaterale dell'organizzatore |
+| O06 | Numero immagini e tempo totale del morphing, formati e recupero del prototipo | Passo di 1 s e fermo completo alla prenotazione confermati |
+| O07 | Gestione del timer di risposta se viene richiesta una pausa | Proposta: congelarlo insieme al resto |
+| O08 | Uscita definitiva di una squadra e trasferimento della console | Almeno due squadre per le regole attuali; consensi validi per squadra |
 
 ### Registro di validazione
 
-- [ ] Visione e prima versione personale approvate.
+- [x] Note e chiarimenti specifici dell'utente integrati nella versione 0.2.
+- [x] Offline ricondotto alla sola predisposizione.
+- [x] Regole di consenso, telefono ufficiale e morphing registrate.
+- [ ] Visione e perimetro della prima versione approvati complessivamente.
 - [ ] Architettura proposta approvata.
-- [ ] Regole iniziali approvate oppure corrette.
-- [ ] Modalità offline e necessità del server locale approvate.
+- [ ] Profili iniziali di gioco, visibilità e punteggi approvati.
+- [ ] Dettagli operativi necessari alla prima implementazione risolti.
 - [ ] Strategia AI personale e futura strategia API approvate.
-- [ ] Decisioni ancora aperte registrate prima dei rispettivi sviluppi.
 - [ ] Avvio del progetto software autorizzato dall'utente.
 
-**Stato attuale:** nessuna approvazione registrata. La presenza di questa bozza nel repository non costituisce approvazione delle proposte né avvio dello sviluppo.
+**Stato attuale:** documento aggiornato su richiesta “elabora”, ancora in bozza. Nessuna implementazione software avviata.
 
 ## 21. Rischi concreti e contromisure progettuali
 
 | Rischio | Effetto | Risposta prevista |
 | --- | --- | --- |
-| Flusso ChatGPT non idoneo per account/installazione | Generazione con abbonamento indisponibile | Prova preliminare, catalogo e importazione; API se scelta |
-| Quiz AI plausibile ma errato | Contestazione e punteggio scorretto | Verifiche, arbitro, annullamento e quarantena |
-| Soluzione inviata al ruolo sbagliato | Attività compromessa | Proiezioni server e verifiche dei payload/cache |
-| Caduta Internet con autorità cloud | Partita sospesa | Scegliere modalità locale prima della serata offline |
-| HTTPS locale non attendibile | PWA/realtime e media non funzionanti come previsto | Prova su dispositivi reali prima del pacchetto locale |
-| Rete con isolamento fra client | Telefoni non raggiungono il server locale | Controllo LAN e rete dedicata quando necessario |
-| Sospensione del telefono | Disconnessione e mancati eventi | Recupero snapshot e stato visibile al rientro |
-| TV con browser insufficiente | Vista non usabile | Test hardware, HDMI e contenitore TV successivo |
-| Gara fra comandi / riconsegne | Prenotazioni o punti doppi | Operazioni atomiche, versioni e idempotenza |
-| Confronto fra canali con diversa latenza | Percezione di prenotazione ingiusta | Autorità locale e misure telefono/ESP32 |
-| Mazzo/media non presenti offline | Prova non avviabile | Controllo completo del pacchetto prima della partita |
-| Crescita eccessiva del primo rilascio | Ritardo nel gioco utilizzabile | Prima partita quiz, poi incrementi modulari |
+| Flusso ChatGPT non idoneo | Generazione con abbonamento indisponibile | Prova preliminare, catalogo/importazione; API se scelta |
+| Quiz AI plausibile ma errato | Esito contestato | Verifiche, accordo, annullamento unanime e quarantena |
+| Soluzione o fotogramma futuro inviato a ruolo errato | Attività compromessa | Matrici server, controllo di URL/payload/cache |
+| Modifica visibilità durante la prova | Segreto già visto e non revocabile | Versioni e applicazione alle attività successive |
+| Confusione tra i tre tipi di consenso | Esito o fermo applicati con soglia errata | Procedure distinte e verifiche dedicate |
+| Squadra che non vota o non invia Riprendi | Attesa prolungata | Stato consensi visibile; politica assenze da definire |
+| Pause ripetute per guadagnare tempo di discussione | Disturbo della partita | -1 se respinte; eventuali limiti antiabuso da valutare senza cambiare il fermo confermato |
+| Telefono ufficiale perso/sospeso | Squadra impossibilitata a prenotare | Trasferimento autorizzato, revoca del precedente e riallineamento |
+| Caduta Internet nel rilascio online | Gioco non autonomo | Attesa e riconnessione; offline esplicitamente rinviato |
+| TV con browser insufficiente | Vista non usabile | Hardware reale, HDMI e contenitore TV successivo |
+| Gara fra comandi o voti ripetuti | Doppie prenotazioni/penalità | Transazioni, versioni e idempotenza |
+| Latenze diverse tra canali | Ordine di pressione percepito come ingiusto | Misure e confronto telefoni/ESP32, senza promettere ordine fisico perfetto |
+| Complessità eccessiva iniziale | Ritardo nel gioco utilizzabile | Quiz online completo, poi moduli e capacità future |
+
+I rischi relativi a certificati LAN, pacchetti mancanti e sincronizzazione verranno affrontati nella futura fase offline; ora ne restano predisposti i confini.
 
 ## 22. Fonti tecniche e verifiche
 
@@ -689,6 +894,8 @@ Fonti ufficiali consultate il **16 novembre 2026**. Le scelte di architettura e 
 
 | Versione | Data | Modifica |
 | --- | --- | --- |
-| 0.1 | 16 novembre 2026 | Prima proposta di gioco, architettura, offline, AI, qualità carte, dispositivi e piano di sviluppo |
+| 0.1 | 16 novembre 2026 | Prima proposta di gioco, architettura, offline, AI, qualità carte, dispositivi e piano |
+| 0.2 | 16 novembre 2026 | Integrazione delle note: offline solo predisposto; attori e matrici per gioco; telefono ufficiale; accordo bilaterale, annullamento unanime, pausa a maggioranza stretta; esclusione di una sola finestra; morphing di volti a 1 immagine/s con fermo di immagini e timer totale |
 
-Il documento verrà aggiornato dopo la validazione. Le decisioni architetturali significative verranno poi registrate in ADR collegati, mantenendo questa pagina come quadro generale del prodotto.
+Il documento viene aggiornato a seguito della revisione dell'utente. Le decisioni architetturali significative verranno registrate in ADR collegati, mantenendo questa pagina come quadro generale del prodotto. La prossima validazione riguarda la versione corrente e i punti ancora aperti della sezione 20.
+
